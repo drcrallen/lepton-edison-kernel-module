@@ -51,10 +51,12 @@ static ssize_t dev_read(struct file *f, char *out, size_t len, loff_t *off) {
         printk(KERN_ALERT "Failed to allocate %d bytes for lepton\n", (int)BUF_SIZE);
         return -EBUSY;
     }
+    memset(xfers[0].rx_buf, 0, BUF_SIZE);
     //xfers[0].rx_buf = dma_zalloc_coherent(&s_dev->dev, BUF_SIZE, &(xfers[0].rx_dma), GFP_DMA | GFP_KERNEL);
     xfers[0].speed_hz = LEPTON_SPEED_HZ;
     xfers[0].bits_per_word = BITS_PER_WORD;
     xfers[0].cs_change = 0;
+    xfers[0].delay_usecs = 10;
     //if(xfers[0].rx_buf == NULL || dma_mapping_error(&s_dev->dev, xfers[0].rx_dma)) {
 
     spi_message_init_with_transfers(
