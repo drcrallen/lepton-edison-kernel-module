@@ -123,7 +123,6 @@ static int __init lepton_spi_init(void)
         return -ENODEV;
     }
 
-    printk(KERN_INFO "Added lepton device with%s dma\n", spi_dev->dev.dma_mask ? "" : "out");
     major_number = register_chrdev(0, DEVICE_NAME, &fops);
     if(major_number < 0) {
         printk(KERN_ALERT "Failed to register lepton major number!\n");
