@@ -19,7 +19,6 @@ static struct spi_device* spi_dev = NULL;
 static int major_number;
 static struct class *leptonClass = NULL;
 static struct device *leptonDevice = NULL;
-static volatile int lepton_module_running = 0;
 
 static int dev_open(struct inode *ignore1, struct file *ignore2) {
     return 0;
@@ -45,19 +44,17 @@ static ssize_t dev_read(struct file *f, char *out, size_t len, loff_t *off) {
     memset(&xfers[0], 0, sizeof(struct spi_transfer));
 
     xfers[0].len = BUF_SIZE;
-    // TODO: dma_pool instead of full allocation
+    // TODO: pool instead of full allocation?
     xfers[0].rx_buf = kmalloc(BUF_SIZE, GFP_DMA | GFP_KERNEL);
     if(!xfers[0].rx_buf) {
         printk(KERN_ALERT "Failed to allocate %d bytes for lepton\n", (int)BUF_SIZE);
         return -EBUSY;
     }
     memset(xfers[0].rx_buf, 0, BUF_SIZE);
-    //xfers[0].rx_buf = dma_zalloc_coherent(&s_dev->dev, BUF_SIZE, &(xfers[0].rx_dma), GFP_DMA | GFP_KERNEL);
     xfers[0].speed_hz = LEPTON_SPEED_HZ;
     xfers[0].bits_per_word = BITS_PER_WORD;
     xfers[0].cs_change = 0;
     xfers[0].delay_usecs = 10;
-    //if(xfers[0].rx_buf == NULL || dma_mapping_error(&s_dev->dev, xfers[0].rx_dma)) {
 
     spi_message_init_with_transfers(
             &message,
@@ -77,7 +74,6 @@ static ssize_t dev_read(struct file *f, char *out, size_t len, loff_t *off) {
         result = message.actual_length - copy_to_user(out, xfers[0].rx_buf, BUF_SIZE);
     }
 
-    //dma_free_coherent(&s_dev->dev, BUF_SIZE, xfers[0].rx_buf, xfers[0].rx_dma);
     kfree(xfers[0].rx_buf);
     return result;
 }
@@ -105,8 +101,6 @@ static int __lepton_driver_list(struct device *dev, void *n)
     struct dma_pool *pool;
     const struct spi_device *spi = to_spi_device(dev);
     printk(KERN_INFO "Found spi device [%s]\n", spi->modalias);
-    dma_head = &dev->dma_pools;
-    printk(KERN_INFO "With%s DMA pools. With%s DMA mask\n", list_is_singular(dma_head) ? "out" : "", dev->coherent_dma_mask ? "" : "out");
     return !strcmp(spi->modalias, "spidev");
 }
 
@@ -121,15 +115,12 @@ static int __init lepton_spi_init(void)
             continue;
         }
         printk(KERN_INFO "Found master on bus %d\n", (int)i);
-        if(master->dev.bus) {
-            printk(KERN_INFO "Found master on bus %d [%s:%s]\n", (int)i, master->dev.bus->name, master->dev.bus->dev_name);
-        } else {
-            printk(KERN_INFO "No bus on %d\n", (int) i);
-        }
-        if(master->dma_alignment) {
-            printk(KERN_INFO "DMA alignment: %d\n", (int) master->dma_alignment);
-        }
         spi_dev = device_find_child(&master->dev, NULL, __lepton_driver_list);
+    }
+
+    if(!spi_dev) {
+        printk(KERN_ALERT "No spidev found for lepton module\n");
+        return -ENODEV;
     }
 
     printk(KERN_INFO "Added lepton device with%s dma\n", spi_dev->dev.dma_mask ? "" : "out");
