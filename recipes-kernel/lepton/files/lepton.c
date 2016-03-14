@@ -12,7 +12,8 @@
 #define CLASS_NAME "lepton"
 
 #define BUF_SIZE 164
-#define BITS_PER_WORD 8
+//#define BITS_PER_WORD 8
+#define BITS_PER_WORD 16
 #define LEPTON_SPEED_HZ 12500000
 
 static struct spi_device* spi_dev = NULL;
@@ -54,7 +55,6 @@ static ssize_t dev_read(struct file *f, char *out, size_t len, loff_t *off) {
     xfers[0].speed_hz = LEPTON_SPEED_HZ;
     xfers[0].bits_per_word = BITS_PER_WORD;
     xfers[0].cs_change = 0;
-    xfers[0].delay_usecs = 10;
 
     spi_message_init_with_transfers(
             &message,
