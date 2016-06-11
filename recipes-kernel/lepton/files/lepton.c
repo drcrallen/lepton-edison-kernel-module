@@ -31,6 +31,7 @@ static ssize_t dev_read(struct file *f, char *out, size_t len, loff_t *off) {
     struct spi_device *s_dev = spi_dev;
     struct spi_transfer xfers[1];
     struct spi_message message;
+    u16 prior_mode;
     int result;
 
     if (len != BUF_SIZE) {
@@ -65,8 +66,13 @@ static ssize_t dev_read(struct file *f, char *out, size_t len, loff_t *off) {
     message.is_dma_mapped = 1;
 
     spi_bus_lock(s_dev->master);
+    // Temporarily force mode
+    prior_mode = s_dev->mode;
+    s_dev->mode = SPI_MODE_3;
     result = spi_sync_locked(s_dev, &message);
+    s_dev->mode = prior_mode;
     spi_bus_unlock(s_dev->master);
+
     if (message.status) {
         printk(KERN_ERR "Failed to read from Lepton SPI: %d\n", (int)message.status);
         result = -EAGAIN;
