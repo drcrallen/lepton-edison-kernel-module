@@ -1,4 +1,4 @@
-SUMMARY = "Lepton DMA test module"
+SUMMARY = "ST7735 DMA test module"
 LICENSE = "GPLv2"
 
 LIC_FILES_CHKSUM="file://license-destdir/st7735/generic_GPLv2;md5=801f80980d171dd6425610833a22dbe6"

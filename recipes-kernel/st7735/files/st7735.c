@@ -12,7 +12,7 @@
 #define CLASS_NAME "st7735"
 
 #define BITS_PER_WORD 8
-#define ST7735_SPEED_HZ 12500000
+#define ST7735_SPEED_HZ 25000000
 
 static struct spi_device* spi_dev = NULL;
 static int major_number;
@@ -25,7 +25,7 @@ static int dev_open(struct inode *ignore1, struct file *ignore2) {
 static int dev_release(struct inode *ignore1, struct file *ignore2) {
     return 0;
 }
-static ssize_t dev_read(struct file *f, char *in, size_t len, loff_t *off) {
+static ssize_t dev_write(struct file *f, char *in, size_t len, loff_t *off) {
     struct spi_device *s_dev = spi_dev;
     struct spi_transfer xfers[1];
     struct spi_message message;
@@ -41,13 +41,13 @@ static ssize_t dev_read(struct file *f, char *in, size_t len, loff_t *off) {
     xfers[0].len = len;
     xfers[0].tx_buf = kmalloc(len, GFP_DMA | GFP_KERNEL);
     if(!xfers[0].tx_buf) {
-        printk(KERN_ALERT "Failed to allocate %d bytes for st7735\n", (int)BUF_SIZE);
+        printk(KERN_ALERT "Failed to allocate %zd bytes for st7735\n", len);
         return -EBUSY;
     }
     memset(xfers[0].tx_buf, 0, len);
     result = copy_from_user(xfers[0].tx_buf, in, len);
-    if(!result) {
-        printk(KERN_ALERT "Faile to copy %zd bytes from user space\n", len);
+    if(result) {
+        printk(KERN_ALERT "Faile to copy %zd bytes from user space. Still have %d bytes\n", len, (int)result);
         kfree(xfers[0].tx_buf);
         return -EBUSY;
     }
@@ -77,7 +77,7 @@ static ssize_t dev_read(struct file *f, char *in, size_t len, loff_t *off) {
     }
 
     kfree(xfers[0].tx_buf);
-    return result;
+    return len;
 }
 
 static struct file_operations fops = {
